@@ -1,5 +1,5 @@
 {
-  "name": "db",
+  "name": "@repo/db",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -20,5 +20,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
+  },
+  "exports": {
+    ".": "./index.ts"
   }
 }
