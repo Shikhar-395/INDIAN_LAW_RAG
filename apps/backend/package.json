@@ -4,7 +4,8 @@
   "type": "module",
   "private": true,
   "dependencies": {
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "pdfjs-dist": "^6.5.438"
   },
   "devDependencies": {
     "@types/bun": "latest",
