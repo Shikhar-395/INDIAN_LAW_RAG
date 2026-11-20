@@ -15,8 +15,8 @@ datasource db {
 model Document {
   id          String  @id @default(uuid())
   title       String
-  descriptoin String?
-  souceUrl    String?
+  description String?
+  sourceUrl   String?
   version     String?
   language    String  @default("en")
 
@@ -30,8 +30,9 @@ model Article {
   id          String @id @default(uuid())
   number      String 
   title       String?
-  parrt       String?
+  part        String?
   chapter     String?
+  partTitle   String?
   content     String  @db.Text
   pageStart   Int?
   pageEnd     Int?
