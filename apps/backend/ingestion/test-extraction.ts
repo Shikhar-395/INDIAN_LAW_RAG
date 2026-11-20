@@ -1,40 +1,74 @@
 import { fileURLToPath } from "node:url";
 
 import { extractPdfPages } from "./pdf.extractor";
+import { parseArticles } from "./parsers/constitution.parser";
 
 async function main() {
   const pages = await extractPdfPages(
-    fileURLToPath(new URL("../data/source/constitution.pdf", import.meta.url))
+    fileURLToPath(new URL("../data/source/constitution.pdf", import.meta.url)),
   );
 
-  console.log("Total PDF pages:", pages.length);
+  const articles = parseArticles(pages);
 
-  console.log("\n========== FIRST PAGE ==========");
-  console.log(pages[0]?.text);
+  console.log("Total parsed articles:", articles.length);
 
-  console.log("\n========== SECOND PAGE ==========");
-  console.log(pages[1]?.text);
+  const articleNumbersToCheck = [
+    "1",
+    "3",
+    "4",
+    "12",
+    "14",
+    "19",
+    "21",
+    "21A",
+    "32",
+    "44",
+    "51A",
+    "72",
+    "124",
+    "226",
+    "239AA",
+    "243G",
+    "300A",
+    "323A",
+    "368",
+    "370",
+    "371-I",
+    "395",
+  ];
 
-  const article21Page = pages.find(
-  (page) =>
-    page.pageNumber === 42 &&
-    /21\.\s*Protection of life and personal liberty/i.test(page.text),
-  );
+  const missing: string[] = [];
 
-  console.log("\n========== ARTICLE 21 SEARCH ==========");
-console.log(article21Page?.text);
-  const matchingPages = pages.filter((page) =>
-    /21\.\s*Protection of life and personal liberty/i.test(
-      page.text
-    )
-  );
+  for (const articleNumber of articleNumbersToCheck) {
+    const article = articles.find(
+      (article) => article.number === articleNumber,
+    );
 
-  console.log(
-    matchingPages.map((page) => ({
-      pageNumber: page.pageNumber,
-      text: page.text.slice(0, 1500),
-    }))
-  );
+    console.log(`\n========== ARTICLE ${articleNumber} ==========`);
+
+    if (!article) {
+      console.log("Missing");
+      missing.push(articleNumber);
+      continue;
+    }
+
+    console.dir(
+      {
+        number: article.number,
+        title: article.title,
+        part: article.part,
+        partTitle: article.partTitle,
+        pageStart: article.pageStart,
+        pageEnd: article.pageEnd,
+        contentPreview: article.content.slice(0, 300),
+      },
+      { depth: null },
+    );
+  }
+
+  console.log("\n========== SUMMARY ==========");
+  console.log("Total parsed articles:", articles.length);
+  console.log("Missing checked articles:", missing.length ? missing : "none");
 }
 
 main().catch(console.error);
