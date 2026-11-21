@@ -58,7 +58,7 @@ export async function answerQuestion(
     throw new Error("Question is required");
   }
 
-  const results = await searchSimilarChunks(normalizedQuestion, {
+  const results: SearchResult[] = await searchSimilarChunks(normalizedQuestion, {
     limit: options?.limit ?? 5,
   });
 
@@ -115,7 +115,7 @@ export async function answerQuestion(
 export async function searchSimilarChunks(
   query: string,
   options?: { limit?: number },
-) {
+): Promise<SearchResult[]> {
   const limit = options?.limit ?? 5;
   const queryEmbedding = await createGeminiEmbedding(query, {
     taskType: "RETRIEVAL_QUERY",
