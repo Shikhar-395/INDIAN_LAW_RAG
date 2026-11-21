@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { prisma } from "@repo/db";
 
+import { chunkArticle } from "./chunking";
 import { extractPdfPages } from "./pdf.extractor";
 import { parseArticles } from "./parsers/constitution.parser";
 
@@ -84,24 +85,73 @@ async function main() {
     documentId: document.id,
   }));
 
-  console.log("Saving articles to database...");
+  console.log("Saving articles and chunks to database...");
 
-  await prisma.$transaction([
-    prisma.article.deleteMany({
-      where: {
-        documentId: document.id,
-      },
-    }),
-    prisma.article.createMany({
-      data: articleRows,
-    }),
-  ]);
+  const chunkCount = await prisma.$transaction(
+    async (tx) => {
+      await tx.article.deleteMany({
+        where: {
+          documentId: document.id,
+        },
+      });
+
+      await tx.article.createMany({
+        data: articleRows,
+      });
+
+      const savedArticles = await tx.article.findMany({
+        where: {
+          documentId: document.id,
+        },
+        orderBy: [
+          {
+            pageStart: "asc",
+          },
+          {
+            number: "asc",
+          },
+        ],
+      });
+
+      const chunkRows = savedArticles.flatMap((article) => {
+        const chunks = chunkArticle({
+          documentTitle: document.title,
+          article: {
+            number: article.number,
+            title: article.title,
+            part: article.part,
+            partTitle: article.partTitle,
+            chapter: article.chapter,
+            content: article.content,
+            pageStart: article.pageStart ?? 0,
+            pageEnd: article.pageEnd ?? 0,
+          },
+        });
+
+        return chunks.map((chunk) => ({
+          articleId: article.id,
+          chunkIndex: chunk.chunkIndex,
+          content: chunk.content,
+        }));
+      });
+
+      await tx.chunk.createMany({
+        data: chunkRows,
+      });
+
+      return chunkRows.length;
+    },
+    {
+      timeout: 60_000,
+    },
+  );
 
   console.log("Ingestion complete.");
   console.log({
     documentId: document.id,
     documentTitle: document.title,
     articleCount: articleRows.length,
+    chunkCount,
   });
 }
 
