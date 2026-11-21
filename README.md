@@ -1,159 +1,146 @@
-# Turborepo starter
+# Indian Law RAG
 
-This Turborepo starter is maintained by the Turborepo core team.
+A learning-focused Retrieval-Augmented Generation app for asking grounded questions about the Constitution of India.
 
-## Using this example
+![Indian Law RAG website screenshot](./apps/web/public/readme-screenshot.png)
 
-Run the following command:
+## What it does
 
-```sh
-npx create-turbo@latest
+- Parses the Constitution PDF into structured Articles.
+- Stores Articles, chunks, and embeddings in Neon Postgres with `pgvector`.
+- Retrieves relevant constitutional chunks using vector search.
+- Generates answers with citations through an Azure OpenAI chat deployment.
+- Ships a minimal Next.js chat UI deployed from `apps/web`.
+
+## Architecture
+
+```txt
+PDF
+→ parser
+→ Articles
+→ chunks
+→ Gemini embeddings
+→ Neon pgvector
+→ /api/ask
+→ Azure OpenAI answer
 ```
 
-## What's inside?
+## Apps and packages
 
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `@next/eslint-plugin-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo build
+```txt
+apps/web       Next.js app + /api/ask route
+apps/backend   local ingestion, parsing, embedding, and retrieval scripts
+packages/db    Prisma schema/client for Neon Postgres
+packages/rag   shared runtime RAG logic used by the web API
+packages/ui    shared UI package from the Turborepo starter
 ```
 
-Without global `turbo`, use your package manager:
+## Environment variables
 
-```sh
-cd my-turborepo
-npx turbo build
-bun exec turbo build
-bun exec turbo build
+Set these locally and in Vercel:
+
+```env
+DATABASE_URL="postgresql://..."
+
+GEMINI_API_KEY="..."
+GEMINI_EMBEDDING_MODEL="gemini-embedding-001"
+GEMINI_EMBEDDING_DIMENSIONS="1536"
+
+AZURE_OPENAI_API_KEY="..."
+AZURE_OPENAI_BASE_URL="https://YOUR-RESOURCE.openai.azure.com/openai/v1"
+AZURE_OPENAI_CHAT_MODEL="..."
+AZURE_OPENAI_MAX_COMPLETION_TOKENS="512"
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+For Neon, prefer `sslmode=verify-full` in `DATABASE_URL`.
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+## Local development
 
-```sh
-turbo build --filter=docs
+Install dependencies:
+
+```bash
+bun install
 ```
 
-Without global `turbo`:
+Run the web app:
 
-```sh
-npx turbo build --filter=docs
-bun exec turbo build --filter=docs
-bun exec turbo build --filter=docs
+```bash
+cd apps/web
+bun --env-file=../backend/.env run dev
 ```
 
-### Develop
+Open:
 
-To develop all apps and packages, run the following command:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo dev
+```txt
+http://localhost:3000
 ```
 
-Without global `turbo`, use your package manager:
+## Ingestion scripts
 
-```sh
-cd my-turborepo
-npx turbo dev
-bun exec turbo dev
-bun exec turbo dev
+These scripts are local/admin jobs. They are not deployed to Vercel.
+
+```bash
+cd apps/backend
+
+# Parse PDF and save Articles + Chunks to Neon
+bun run ingestion/ingest-constitution.ts
+
+# Embed chunks and store pgvector rows
+bun run ingestion/embed-chunks.ts
+
+# Test retrieval + answer generation from CLI
+bun run rag/answer-question.ts "What does Article 21 say?"
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+## Web API
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+The deployable app exposes:
 
-```sh
-turbo dev --filter=web
+```txt
+POST /api/ask
 ```
 
-Without global `turbo`:
+Request:
 
-```sh
-npx turbo dev --filter=web
-bun exec turbo dev --filter=web
-bun exec turbo dev --filter=web
+```json
+{
+  "question": "What does Article 21 say about personal liberty?"
+}
 ```
 
-### Remote Caching
+Response:
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
-
-```sh
-cd my-turborepo
-turbo login
+```json
+{
+  "question": "...",
+  "answer": "...",
+  "sources": []
+}
 ```
 
-Without global `turbo`, use your package manager:
+## Deployment
 
-```sh
-cd my-turborepo
-npx turbo login
-bun exec turbo login
-bun exec turbo login
+Deploy `apps/web` on Vercel.
+
+Suggested Vercel settings:
+
+```txt
+Framework: Next.js
+Root Directory: apps/web
+Install Command: bun install
+Build Command: bun run build
+Output Directory: .next
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+The web build runs Prisma generation before `next build`.
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+## Current dataset
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- Document: The Constitution of India
+- Parsed Articles: 492
+- Chunks: 583
+- Embedding dimensions: 1536
 
-```sh
-turbo link
-```
+## Notes
 
-Without global `turbo`:
-
-```sh
-npx turbo link
-bun exec turbo link
-bun exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+This project is for learning RAG concepts. It is not legal advice.
