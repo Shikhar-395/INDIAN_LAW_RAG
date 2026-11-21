@@ -1,13 +1,21 @@
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --foreground: #000000;
+  --muted-foreground: #5f5f5f;
+  --line: rgba(17, 17, 15, 0.12);
+  --composer-surface: rgba(255, 255, 255, 0.88);
+  --panel-surface: rgba(255, 255, 255, 0.72);
+  --soft-surface: rgba(17, 17, 15, 0.035);
+  --soft-surface-hover: rgba(17, 17, 15, 0.065);
+  --primary: #000000;
+  --primary-foreground: #ffffff;
+  --placeholder: #7a7a7a;
+  --focus-ring: rgba(17, 17, 15, 0.38);
+  --danger-surface: rgba(0, 0, 0, 0.04);
+  --danger-border: rgba(0, 0, 0, 0.2);
+  --danger-foreground: #000000;
+  --skeleton-a: rgba(17, 17, 15, 0.06);
+  --skeleton-b: rgba(17, 17, 15, 0.11);
 }
 
 html,
@@ -16,9 +24,19 @@ body {
   overflow-x: hidden;
 }
 
+html {
+  color-scheme: light;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
+  font-family: var(--font-geist-mono), "Roboto Mono", ui-monospace, SFMono-Regular,
+    Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-synthesis: none;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 * {
@@ -32,19 +50,7 @@ a {
   text-decoration: none;
 }
 
-.imgDark {
-  display: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
-  }
-
-  .imgLight {
-    display: none;
-  }
-  .imgDark {
-    display: unset;
-  }
+button,
+textarea {
+  font: inherit;
 }
